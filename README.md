@@ -27,7 +27,7 @@ Clone the repository and execute the development script:
 
 ## Dependencies
 - **Text Extraction**: @hyzyla/pdfium
-- **Autocomplete**: @kamilmielnik/trie, primereact
+- **Autocomplete**: primereact, @kamilmielnik/trie
 - **Other**: react, @nivo/line
 
 
