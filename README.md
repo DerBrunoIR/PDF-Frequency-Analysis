@@ -1,28 +1,26 @@
-# Frequency Analysis
+# Web-Based PDF Frequency Analysis
 
-PDF Readers can search and find individual words in a PDF.
-This web application provides aggregated insights about words occuring in a PDF.
-Especially the following features:
-- word frequency over pages for selected tokens
-- most frequently used words
-- longest used words
-while using minimal backend resources, since all PDF operations are performed in the frontend.
-[ignaz.dev](https://frequency-analysis.ignaz.dev/)
+While standard PDF viewers facilitate keyword retrieval, they often lack aggregate analytical capabilities. This web application provides quantitative insights regarding token distribution within PDF documents.
 
-The PostgreSQL manual (version 18) contains over 3 thousand pages and can be found [here](https://www.postgresql.org/files/documentation/pdf/18/postgresql-18-A4.pdf).
-And we get the following distributioni for the words `view` and `materialized`:
-<img width="2071" height="736" alt="image" src="https://github.com/user-attachments/assets/76d05bc5-5a91-482e-9341-5138b7965494" />
+**Key Features:**
+* **Longitudinal Analysis:** Visualization of word frequency across pages for selected tokens.
+* **Frequency Metrics:** Identification of the most frequently occurring tokens.
+* **Length Metrics:** Extraction of the longest tokens.
+* **Client-Side Processing:** All PDF operations are executed in the frontend, requiring negligible backend resources.
 
+**Demo:** [ignaz.dev](https://frequency-analysis.ignaz.dev/)
 
-# How to run
+**Case Study:**
+The PostgreSQL manual (Version 18), comprising over 3,000 pages, is available [here](https://www.postgresql.org/files/documentation/pdf/18/postgresql-18-A4.pdf). The analysis below illustrates the distribution of the tokens `view` and `materialized` within this document:
+
+<img width="2071" height="736" alt="distribution graph" src="https://github.com/user-attachments/assets/76d05bc5-5a91-482e-9341-5138b7965494" />
+
+# Deployment
+
 ## Docker
-docker image for amd64 and arm:
-brunoir/pdf-freq-analysis 
+Multi-architecture images (amd64, arm) are available via Docker Hub:
+`brunoir/pdf-freq-analysis`
 
-## Locally
-clone and
-```
-npm run dev
-```
-
-
+## Local Development
+Clone the repository and execute the development script:
+`npm run dev`
