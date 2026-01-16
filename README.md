@@ -24,3 +24,10 @@ Multi-architecture images (amd64, arm) are available via Docker Hub:
 ## Local Development
 Clone the repository and execute the development script:
 `npm run dev`
+
+## Dependencies
+- **Text Extraction**: @hyzyla/pdfium
+- **Autocomplete**: @kamilmielnik/trie, primereact
+- **Other**: react, @nivo/line
+
+
