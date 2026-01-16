@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import './App.css'
-import { GlobalWordRanking } from './GlobalRanking';
+import { TopTokens } from './TopTokens.tsx';
 import { runPdfAnalysisInWorker } from './pdfClient';
 import type { Frequencies } from './types';
+import { TokenFreqOverPages } from './TokenFreqOverPages';
+import { TokenSelector } from './TokenSelector.tsx';
+import './App.css';
+import { Stack, Box } from '@mui/material';
+import { TopLongestTokens } from './LongestTokens.tsx';
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -24,7 +28,7 @@ interface SelectFileBtnProps {
   onFileSelect: (file: File) => void,
 }
 
-function SelectFileBtn({ onFileSelect, label = 'Select PDF File'}: SelectFileBtnProps) {
+function SelectFileBtn({ onFileSelect, label = 'Select PDF'}: SelectFileBtnProps) {
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -38,6 +42,7 @@ function SelectFileBtn({ onFileSelect, label = 'Select PDF File'}: SelectFileBtn
   return (
     <Button
       component="label"
+      color='primary'
       role={undefined}
       variant="contained"
       tabIndex={-1}
@@ -55,36 +60,54 @@ function SelectFileBtn({ onFileSelect, label = 'Select PDF File'}: SelectFileBtn
 function App() {
   const [freq, setFreq] = useState<Frequencies | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedTokens, setSelectedTokens] = useState<string[]>([]);
+  const deferedSelectedTokens = useDeferredValue<string[]>(selectedTokens);
 
   return (
     <div style={{ padding: '2rem' }}>
-      <Typography variant="h4" gutterBottom>PDF Analysis</Typography>
-      
-      <SelectFileBtn
-        onFileSelect={async (file) => {
-          setIsProcessing(true);
-          try {
-            // Non-blocking call
-            const result = await runPdfAnalysisInWorker(file);
-            setFreq(result);
-          } catch (e) {
-            console.error(e);
-          } finally {
-            setIsProcessing(false);
-          }
-        }}
-      />
+      <Stack direction='row' justifyContent='space-between' alignItems='center'>
+        <Typography variant="h4" gutterBottom>Frequency Analysis</Typography>
+        <SelectFileBtn
+          onFileSelect={async (file) => {
+            setIsProcessing(true);
+            try {
+              // Non-blocking call
+              const result = await runPdfAnalysisInWorker(file);
+              setFreq(result);
+            } catch (e) {
+              console.error(e);
+            } finally {
+              setIsProcessing(false);
+            }
+          }}
+        />
+      </Stack>
+      <br />
+      <br />
       
       {isProcessing && <p>Processing...</p>}
 
       {freq && (
         <>
-          <div>
-            Unique Tokens: {freq.size}
-            <br />
-            Analyzed Tokens: {Array.from(freq.values()).map(x => x.reduce((p, c) => p+c)).reduce((p, c) => p+c)} 
-          </div>
-          <GlobalWordRanking freq={freq} limit={35} />
+          <TopTokens freq={freq} limit={50} />
+          <br />
+          <br />
+          <Stack direction='column' alignItems='center' justifyContent='center' spacing={2}>
+            <TokenFreqOverPages freq={freq} tokens={deferedSelectedTokens} />
+            <Box maxWidth='90%'>
+              <TokenSelector 
+                selection={selectedTokens} 
+                tokens={Array.from(freq.keys())} 
+                setTokens={setSelectedTokens} 
+              />
+            </Box>
+          </Stack>
+          <br />
+          <br />
+          <br />
+          <br />
+          <br />
+          <TopLongestTokens freq={freq} limit={20} />
         </>
       )}
     </div>

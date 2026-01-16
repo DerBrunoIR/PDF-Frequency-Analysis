@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Tooltip from '@mui/material/Tooltip';
+import Box from '@mui/material/Box';
 import { useTheme } from '@mui/material/styles';
 
 interface RankingProps {
@@ -10,41 +12,56 @@ interface RankingProps {
   limit?: number;
 }
 
-export const GlobalWordRanking = ({ freq, limit = 20 }: RankingProps) => {
+export const TopTokens = ({ freq, limit = 20 }: RankingProps) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
-  // 1. Aggregate and Sort
-  const sortedWords = Array.from(freq.entries())
-    .map(([word, counts]) => ({
-      word,
-      total: counts.reduce((sum, val) => sum + val, 0)
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, limit);
+  // 1. Memoized Aggregation and Statistics
+  const { topWords, maxTotal, uniqueCount, totalVolume } = useMemo(() => {
+    let globalSum = 0;
+    const allWords = [];
 
-  // 2. Normalization base
-  const maxTotal = sortedWords.length > 0 ? sortedWords[0].total : 1;
+    // Single pass for summation and array construction
+    for (const [word, counts] of freq.entries()) {
+      const wordTotal = counts.reduce((sum, val) => sum + val, 0);
+      globalSum += wordTotal;
+      allWords.push({ word, total: wordTotal });
+    }
+
+    // Sort descending
+    allWords.sort((a, b) => b.total - a.total);
+
+    return {
+      topWords: allWords.slice(0, limit),
+      maxTotal: allWords.length > 0 ? allWords[0].total : 1,
+      uniqueCount: freq.size,
+      totalVolume: globalSum
+    };
+  }, [freq, limit]);
 
   return (
     <Card variant="outlined" sx={{ mb: 4 }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Top {limit} Tokens
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 2 }}>
+          <Typography variant="h6">
+            Top {limit} most frequent Tokens
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+            Vocabulary: {uniqueCount} | Tokens: {totalVolume}
+          </Typography>
+        </Box>
+
         <Grid container spacing={2}>
-          {sortedWords.map((item) => {
+          {topWords.map((item) => {
             const ratio = item.total / maxTotal;
             
-            // Perceptual Lightness Calculation:
-            // Dark Mode: Linear scaling 40% (Dim) -> 90% (Bright/Glowing)
-            // Light Mode: Linear scaling 80% (Pale) -> 30% (Dark/Bold)
+            // Luminosity: Dark Mode (40-90%), Light Mode (80-30%)
             const lightness = isDarkMode 
               ? 40 + (50 * ratio) 
               : 80 - (50 * ratio);
 
             return (
-              <Grid item key={item.word}>
+              <Grid key={item.word}>
                 <Tooltip title={`Frequency: ${item.total}`} arrow placement="top">
                   <Typography 
                     variant="body1" 
@@ -52,7 +69,6 @@ export const GlobalWordRanking = ({ freq, limit = 20 }: RankingProps) => {
                       fontFamily: 'monospace', 
                       width: 'fit-content',
                       fontWeight: 'bold',
-                      // Using HSL allows dynamic lightness adjustment without complex palette manipulation
                       color: `hsl(210, 100%, ${lightness}%)`,
                       cursor: 'default',
                       '&:hover': { 

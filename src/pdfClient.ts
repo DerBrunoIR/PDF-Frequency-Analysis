@@ -1,5 +1,4 @@
-// Import the worker using Vite/Webpack 5 syntax
-import PdfWorker from './pdf.worker.ts'; 
+import PdfWorker from './pdf.worker?worker';
 import type { Frequencies } from "./types";
 
 export const runPdfAnalysisInWorker = (file: File): Promise<Frequencies> => {
