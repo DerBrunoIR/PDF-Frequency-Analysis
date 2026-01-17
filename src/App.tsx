@@ -50,6 +50,7 @@ function SelectFileBtn({ onFileSelect, label = 'Select PDF'}: SelectFileBtnProps
       {label}
       <VisuallyHiddenInput
         type="file"
+        accept='application/pdf'
         onChange={(event) => handleChange(event) }
         multiple
       />
@@ -87,7 +88,7 @@ function App() {
       
       {isProcessing && <p>Processing...</p>}
 
-      {freq && (
+      {(freq && !isProcessing) && (
         <>
           <TopTokens freq={freq} limit={50} />
           <br />
