@@ -22,7 +22,7 @@ export function TokenSelector({ selection, setTokens, tokens}: TokenSelectorProp
   }, [tokens]);
 
   const search = (event: AutoCompleteCompleteEvent) => {
-    const prefix = event.query
+    const prefix = event.query.toLowerCase()
     const prefixNode = find(trie.root, prefix) || {};
     const descendants = toArray(prefixNode, { prefix, sort: true, wordsOnly: true });
     let words = descendants.map(({ prefix: word }) => word);
