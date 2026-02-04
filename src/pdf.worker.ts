@@ -28,8 +28,10 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
           
           // Tokenization
           const tokens = text.split(/\s+/)
-            .map(t => t.toLowerCase())
-            .filter(t => /^\w+$/.test(t));
+            .map(t => t.toLowerCase().replace(/[^a-zA-Z0-9\u00F0-\u02AF]/g, '')) // keep alpha-numeric and umlaute
+            //.filter(t => /^\w+$/.test(t));
+          console.log(pageIndex)
+          console.log(tokens)
 
           const localCounts = new Map<string, number>();
           for (const token of tokens) {
