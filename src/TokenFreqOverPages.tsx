@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ResponsiveLineCanvas } from '@nivo/line';
+import { ResponsiveBarCanvas } from '@nivo/bar';
 import { useTheme } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -14,20 +14,29 @@ interface TokenFreqProps {
 export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
   const theme = useTheme();
 
-  // Transform data: tokens[] -> Array<{ id, data: [{x, y}] }>
-  const chartData = useMemo(() => {
-    return tokens.map((token) => {
-      const pageCounts = freq.get(token) || [];
-      return {
-        id: token,
-        data: pageCounts.map((count, index) => ({
-          x: index + 1,
-          y: count,
-        })),
-      };
-    }).filter(series => series.data.length > 0);
+  const { data: chartData, keys } = useMemo(() => {
+    if (!tokens.length) return { data: [], keys: [] };
+
+    let maxPages = 0;
+    tokens.forEach((token) => {
+      const len = freq.get(token)?.length || 0;
+      if (len > maxPages) maxPages = len;
+    });
+
+    const data = [];
+    for (let i = 0; i < maxPages; i++) {
+      const entry: Record<string, string | number> = { page: (i + 1).toString() };
+      tokens.forEach((token) => {
+        const counts = freq.get(token) || [];
+        entry[token] = counts[i] || 0;
+      });
+      data.push(entry);
+    }
+
+    return { data, keys: tokens };
   }, [freq, tokens]);
 
+  const labelInterval = Math.ceil(chartData.length / 10);
   return (
     <Card variant="outlined" sx={{ mb: 4, width: '100%' }}>
       <CardContent>
@@ -40,35 +49,56 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
 
         <Box sx={{ height: 300 }}>
           {chartData.length > 0 ? (
-            <ResponsiveLineCanvas
+            <ResponsiveBarCanvas
               data={chartData}
-              margin={{ top: 20, right: 110, bottom: 60, left: 60 }} // Increased right margin for legend
-              xScale={{ type: 'linear' }}
-              yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false }}
-              enablePoints={false} 
-              enableGridX={false}
-              isInteractive={true}
+              keys={keys}
+              indexBy="page"
+              margin={{ top: 20, right: 110, bottom: 60, left: 60 }}
               pixelRatio={window.devicePixelRatio}
-              lineWidth={1.5}
-              colors={{ scheme: 'category10' }} // Standard categorical scheme
-              legends={[
-                {
-                  anchor: 'bottom-right',
-                  direction: 'column',
-                  justify: false,
-                  translateX: 100,
-                  translateY: 0,
-                  itemsSpacing: 0,
-                  itemDirection: 'left-to-right',
-                  itemWidth: 80,
-                  itemHeight: 20,
-                  itemOpacity: 0.75,
-                  symbolSize: 12,
-                  symbolShape: 'circle',
-                  symbolBorderColor: 'rgba(0, 0, 0, .5)',
-                  itemTextColor: theme.palette.text.secondary,
+              padding={0.6}
+              innerPadding={2}
+              enableGridX={true}
+              groupMode="grouped"
+              colors={{ scheme: 'category10' }}
+              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+              
+              // 1. Fix TypeScript error & hide 0 values
+              labelFormat={(value) => {
+                const val = Number(value); 
+                return val > 0 ? val.toString() : ""; 
+              }}
+              
+              // 2. Hide labels if bars are too thin (in pixels)
+              labelSkipWidth={16}
+              labelSkipHeight={12}
+
+              axisTop={null}
+              axisRight={null}
+              axisBottom={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: 'Page Number',
+                legendPosition: 'middle',
+                legendOffset: 36,
+                // 1. Force a tick mark for every single data point
+                tickValues: chartData.map((d) => d.page), 
+                // 2. Conditionally return the label text or an empty string
+                format: (value) => {
+                  // Assuming 'page' is "1", "2", etc.
+                  // Adjust logic if page IDs are not sequential/numeric
+                  const index = parseInt(String(value)) - 1;
+                  return index % labelInterval === 0 ? value : "";
                 }
-              ]}
+              }}
+              axisLeft={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: 'Frequency',
+                legendPosition: 'middle',
+                legendOffset: -40,
+              }}
               theme={{
                 text: {
                   fill: theme.palette.text.primary,
@@ -84,13 +114,6 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
                 grid: {
                   line: { stroke: theme.palette.divider },
                 },
-                crosshair: {
-                  line: {
-                    stroke: theme.palette.text.secondary,
-                    strokeWidth: 1,
-                    strokeOpacity: 0.5,
-                  },
-                },
                 tooltip: {
                   container: {
                     background: theme.palette.background.paper,
@@ -99,22 +122,31 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
                   },
                 },
               }}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Page Number',
-                legendOffset: 36,
-                legendPosition: 'middle',
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Frequency',
-                legendOffset: -40,
-                legendPosition: 'middle',
-              }}
+              legends={[
+                {
+                  dataFrom: 'keys',
+                  anchor: 'bottom-right',
+                  direction: 'column',
+                  justify: false,
+                  translateX: 120,
+                  translateY: 0,
+                  itemsSpacing: 2,
+                  itemWidth: 100,
+                  itemHeight: 20,
+                  itemDirection: 'left-to-right',
+                  itemOpacity: 0.85,
+                  symbolSize: 20,
+                  effects: [
+                    {
+                      on: 'hover',
+                      style: {
+                        itemOpacity: 1,
+                      },
+                    },
+                  ],
+                  itemTextColor: theme.palette.text.secondary,
+                },
+              ]}
             />
           ) : (
             <Box 
