@@ -36,6 +36,23 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
     return { data, keys: tokens };
   }, [freq, tokens]);
 
+  const maxFreq = useMemo(() => {
+    let max = 0;
+    Array.from(freq.entries())
+      .filter(([token]) => tokens.includes(token))
+      .forEach(([, counts]) => {
+      const localMax = Math.max(...counts);
+      if (localMax > max) max = localMax;
+    });
+    return max;
+  }, [freq, tokens]);
+  const yTickValues = useMemo(() => {
+    if (maxFreq <= 20) {
+      return Array.from({ length: maxFreq + 1 }, (_, i) => i);
+    }
+    return undefined;
+  }, [maxFreq]);
+
   const labelInterval = Math.ceil(chartData.length / 10);
   return (
     <Card variant="outlined" sx={{ mb: 4, width: '100%' }}>
@@ -53,21 +70,18 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
               data={chartData}
               keys={keys}
               indexBy="page"
-              margin={{ top: 20, right: 110, bottom: 60, left: 60 }}
+              margin={{ top: 25, right: 110, bottom: 60, left: 60 }}
               pixelRatio={window.devicePixelRatio}
-              padding={0.6}
-              innerPadding={2}
               enableGridX={true}
+              gridYValues={yTickValues}
               groupMode="grouped"
               colors={{ scheme: 'category10' }}
               borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              
-              // 1. Fix TypeScript error & hide 0 values
               labelFormat={(value) => {
-                const val = Number(value); 
-                return val > 0 ? val.toString() : ""; 
+                const val = Number(value);
+                return val > 0 ? val.toString() : "";
               }}
-              
+
               // 2. Hide labels if bars are too thin (in pixels)
               labelSkipWidth={16}
               labelSkipHeight={12}
@@ -82,7 +96,7 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
                 legendPosition: 'middle',
                 legendOffset: 36,
                 // 1. Force a tick mark for every single data point
-                tickValues: chartData.map((d) => d.page), 
+                tickValues: chartData.map((d) => d.page),
                 // 2. Conditionally return the label text or an empty string
                 format: (value) => {
                   // Assuming 'page' is "1", "2", etc.
@@ -98,6 +112,8 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
                 legend: 'Frequency',
                 legendPosition: 'middle',
                 legendOffset: -40,
+                tickValues: yTickValues,
+                format: (e) => Math.floor(e) === e ? e : "",
               }}
               theme={{
                 text: {
@@ -149,10 +165,10 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
               ]}
             />
           ) : (
-            <Box 
-              display="flex" 
-              alignItems="center" 
-              justifyContent="center" 
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
               height="100%"
             >
               <Typography color="text.secondary">No data found for selected tokens</Typography>
