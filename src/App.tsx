@@ -1,5 +1,5 @@
-import { useDeferredValue, useState } from 'react'
-import { styled } from '@mui/material/styles';
+import { useDeferredValue, useState, useEffect } from 'react'
+import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { TopTokens } from './TopTokens.tsx';
@@ -8,8 +8,10 @@ import type { Frequencies } from './types';
 import { TokenFreqOverPages } from './TokenFreqOverPages';
 import { TokenSelector } from './TokenSelector.tsx';
 import './App.css';
-import { Stack, Box } from '@mui/material';
+import { Stack, Box, IconButton } from '@mui/material';
 import { TopLongestTokens } from './LongestTokens.tsx';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -62,14 +64,36 @@ function App() {
   const [freq, setFreq] = useState<Frequencies | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTokens, setSelectedTokens] = useState<string[]>([]);
+  const [darkMode, setDarkMode] = useState(true); // Default to dark mode
   const deferedSelectedTokens = useDeferredValue<string[]>(selectedTokens);
 
+  const theme = createTheme({
+    palette: {
+      mode: darkMode ? 'dark' : 'light',
+    },
+  });
+
+  useEffect(() => {
+    const link = document.getElementById('prime-theme');
+    if (link) {
+      link.setAttribute('href', 
+        `https://primereact.org/resources/themes/lara-${darkMode ? 'dark' : 'light'}-blue/theme.css`
+      );
+    }
+    document.body.style.backgroundColor = darkMode ? '#000000' : '#f8f9fa';
+  }, [darkMode]);
+
   return (
+    <ThemeProvider theme={theme}>
     <div style={{ padding: '2rem' }}>
       <Stack direction='row' justifyContent='space-between' alignItems='center'>
-        <Typography variant="h4" gutterBottom>Frequency Analysis</Typography>
-        <SelectFileBtn
-          onFileSelect={async (file) => {
+        <Typography variant="h4" gutterBottom sx={{ color: 'text.primary' }}>Frequency Analysis</Typography>
+        <Stack direction='row' alignItems='center' spacing={1}>
+            <IconButton onClick={() => setDarkMode(!darkMode)} sx={{ color: darkMode ? 'white' : 'black' }}>
+            {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+          <SelectFileBtn
+            onFileSelect={async (file) => {
             setIsProcessing(true);
             try {
               // Non-blocking call
@@ -83,16 +107,15 @@ function App() {
           }}
         />
       </Stack>
-      <br />
-      <br />
+      </Stack>
+      <Box sx={{ height: 20 }} />
       
       {isProcessing && <p>Processing...</p>}
 
       {(freq && !isProcessing) && (
         <>
           <TopTokens freq={freq} limit={50} />
-          <br />
-          <br />
+          <Box sx={{ height: 20 }} />
           <Stack direction='column' alignItems='center' justifyContent='center' spacing={2}>
             <TokenFreqOverPages freq={freq} tokens={deferedSelectedTokens} />
             <Box maxWidth='90%'>
@@ -101,7 +124,7 @@ function App() {
                 tokens={Array.from(freq.keys())} 
                 setTokens={setSelectedTokens} 
               />
-              <Stack direction='row' justifyContent='space-between' alignItems='center'>
+      <Stack direction='row' justifyContent='space-between' alignItems='center' flexWrap="wrap" gap={1}>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
                   *interpreted as regex: .*+?^${}()|[\]
                 </Typography>
@@ -118,15 +141,12 @@ function App() {
               </Stack>
             </Box>
           </Stack>
-          <br />
-          <br />
-          <br />
-          <br />
-          <br />
+          <Box sx={{ height: 50 }} />
           <TopLongestTokens freq={freq} limit={20} />
         </>
       )}
     </div>
+    </ThemeProvider>
   );
 }
 
