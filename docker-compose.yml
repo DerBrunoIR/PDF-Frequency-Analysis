@@ -1,0 +1,9 @@
+services:
+  build:
+    image: brunoir/pdf-freq-analysis:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
