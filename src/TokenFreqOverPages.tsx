@@ -5,6 +5,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import { expandPattern, isPattern } from './tokenRegex';
 
 interface TokenFreqProps {
   freq: Map<string, number[]>;
@@ -14,38 +15,67 @@ interface TokenFreqProps {
 export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
   const theme = useTheme();
 
-  const { data: chartData, keys } = useMemo(() => {
-    if (!tokens.length) return { data: [], keys: [] };
+  // Expand patterns to matching tokens and prepare chart data
+  const { data: chartData, keys, matchCounts } = useMemo(() => {
+    if (!tokens.length) return { data: [], keys: [], matchCounts: new Map<string, number>() };
 
+    // Expand patterns to actual tokens, track match counts for display
+    const expandedMap = new Map<string, string[]>(); // pattern -> matched tokens
+    const matchCounts = new Map<string, number>();
+    const allTokens = Array.from(freq.keys());
+    
+    for (const token of tokens) {
+      if (isPattern(token)) {
+        const matches = expandPattern(token, allTokens);
+        expandedMap.set(token, matches);
+        matchCounts.set(token, matches.length);
+      } else {
+        expandedMap.set(token, [token]);
+        matchCounts.set(token, 1);
+      }
+    }
+
+    // Determine max pages
     let maxPages = 0;
-    tokens.forEach((token) => {
-      const len = freq.get(token)?.length || 0;
-      if (len > maxPages) maxPages = len;
-    });
+    for (const matched of expandedMap.values()) {
+      for (const t of matched) {
+        const len = freq.get(t)?.length || 0;
+        if (len > maxPages) maxPages = len;
+      }
+    }
 
+    // Build chart data: aggregate counts from all matched tokens per pattern
     const data = [];
     for (let i = 0; i < maxPages; i++) {
       const entry: Record<string, string | number> = { page: (i + 1).toString() };
-      tokens.forEach((token) => {
-        const counts = freq.get(token) || [];
-        entry[token] = counts[i] || 0;
-      });
+      for (const [pattern, matchedTokens] of expandedMap) {
+        // Sum counts across all matched tokens
+        let sum = 0;
+        for (const t of matchedTokens) {
+          const counts = freq.get(t);
+          if (counts && i < counts.length) {
+            sum += counts[i];
+          }
+        }
+        entry[pattern] = sum;
+      }
       data.push(entry);
     }
 
-    return { data, keys: tokens };
+    return { data, keys: tokens, matchCounts };
   }, [freq, tokens]);
 
+  // Calculate max frequency from aggregated chart data (works for both literal tokens and patterns)
   const maxFreq = useMemo(() => {
     let max = 0;
-    Array.from(freq.entries())
-      .filter(([token]) => tokens.includes(token))
-      .forEach(([, counts]) => {
-      const localMax = Math.max(...counts);
-      if (localMax > max) max = localMax;
-    });
+    for (const entry of chartData) {
+      for (const key of keys) {
+        const val = entry[key] as number;
+        if (val > max) max = val;
+      }
+    }
     return max;
-  }, [freq, tokens]);
+  }, [chartData, keys]);
   const yTickValues = useMemo(() => {
     if (maxFreq <= 20) {
       return Array.from({ length: maxFreq + 1 }, (_, i) => i);
@@ -61,7 +91,7 @@ export const TokenFreqOverPages = ({ freq, tokens }: TokenFreqProps) => {
           Token Frequency Distribution
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Comparing {tokens.length} tokens
+          {tokens.map(t => isPattern(t) ? `${t} (${matchCounts.get(t)} matches)` : t).join(', ')}
         </Typography>
 
         <Box sx={{ height: 300 }}>

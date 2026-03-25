@@ -101,6 +101,21 @@ function App() {
                 tokens={Array.from(freq.keys())} 
                 setTokens={setSelectedTokens} 
               />
+              <Stack direction='row' justifyContent='space-between' alignItems='center'>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                  *interpreted as regex: .*+?^${}()|[\]
+                </Typography>
+                {selectedTokens.length > 0 && (
+                  <Typography 
+                    variant="caption" 
+                    color="primary" 
+                    sx={{ mt: 1, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                    onClick={() => setSelectedTokens([])}
+                  >
+                    Clear all
+                  </Typography>
+                )}
+              </Stack>
             </Box>
           </Stack>
           <br />
